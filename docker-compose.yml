@@ -1,51 +1,49 @@
-version: "2.0"
+version: "3.9"
 services:  
-  php_service:
+  php_appname:
     build:
       context: .
       dockerfile: Dockerfile    
-    container_name: appname_php
+    container_name: ${APP_NAME}_php
     restart: unless-stopped
     tty: true
-    #environment:
-    #  SERVICE_NAME: appname_php
-    #  SERVICE_TAGS: dev
     working_dir: /var/www/html/
     volumes:
       - ./:/var/www/html/
       - ./php/laravel.ini:/usr/local/etc/php/conf.d/laravel.ini
     networks:
-      - app-network
+      - appname-network
  
-  nginx_service:
+  nginx_appname:
     depends_on:
-      - php_service
+      - php_appname
     build:
       context: ./nginx
       dockerfile: Dockerfile
-    container_name: appname_nginx
+    container_name: ${APP_NAME}_nginx
     restart: unless-stopped
     tty: true
     ports:
       - "80:80"
     networks:
-      - app-network
+      - appname-network
 
-  #Postgres Service
-  pgsql_service:
-    container_name: appname_pgsql
+  pgsql_appname:
+    container_name: ${APP_NAME}_pgsql
     image: postgres:13
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:${DB_PORT}"
     environment:
-      POSTGRES_DB: example_laravel
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 12345678
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - "./postgresql:/var/lib/postgresql/data"
     networks:
-      - app-network
+      - appname-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "${DB_DATABASE}", "-U", "postgres"]
 
 networks:
-  app-network:
+  appname-network:
     driver: bridge
